@@ -12,8 +12,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     await loadFinalUpsellProduct();
     showOrderDetails();
     
-    // Show popup after a delay
-    setTimeout(showUpsellPopup, AppConfig.UI.POPUP_DELAY);
+    // Show inline upsell after a delay
+    setTimeout(showInlineUpsell, 1000);
     
     // Setup popup outside click handler
     const popup = document.getElementById('upsell-popup');
@@ -69,6 +69,7 @@ async function loadFinalUpsellProduct() {
         if (AppConfig.FINAL_UPSELL_CONFIG.USE_FREE_PRODUCT) {
             finalUpsellProduct = AppConfig.FINAL_UPSELL_CONFIG.FREE_PRODUCT;
             updatePopupContent(finalUpsellProduct);
+            updateInlineContent(finalUpsellProduct);
         } else {
             const response = await fetch(AppConfig.getApiUrl(`/api/get-product?product_id=${AppConfig.getProductId('FINAL_UPSELL')}`));
             const data = await response.json();
@@ -76,18 +77,41 @@ async function loadFinalUpsellProduct() {
             if (!data.error) {
                 finalUpsellProduct = data;
                 updatePopupContent(data);
+                updateInlineContent(data);
             }
+        }
+        
+        // If inline upsell is currently showing loading, switch to content
+        const upsellSection = document.getElementById('inline-upsell');
+        const loadingSection = document.getElementById('upsell-loading');
+        if (upsellSection.style.display === 'block' && loadingSection.style.display === 'block') {
+            showUpsellContent();
         }
     } catch (error) {
         console.error('Error loading final upsell product:', error);
+        // If there's an error and we're showing loading, hide the section
+        const upsellSection = document.getElementById('inline-upsell');
+        const loadingSection = document.getElementById('upsell-loading');
+        if (upsellSection.style.display === 'block' && loadingSection.style.display === 'block') {
+            skipUpsell();
+        }
     }
 }
 
 function updatePopupContent(product) {
+    // Update popup content (for backward compatibility)
     document.getElementById('popup-product-name').textContent = product.product.name;
     document.getElementById('popup-product-description').textContent = 
         product.product.description || 'Special final offer just for you!';
     document.getElementById('popup-product-price').textContent = product.price.formatted;
+}
+
+function updateInlineContent(product) {
+    // Update inline upsell content
+    document.getElementById('inline-product-name').textContent = product.product.name;
+    document.getElementById('inline-product-description').textContent = 
+        product.product.description || 'Special final offer just for you!';
+    document.getElementById('inline-product-price').textContent = product.price.formatted;
 }
 
 function showOrderDetails() {
@@ -118,6 +142,34 @@ function showOrderDetails() {
     document.getElementById('purchased-items').innerHTML = html;
 }
 
+function showInlineUpsell() {
+    // Show inline upsell section with loading state
+    document.getElementById('inline-upsell').style.display = 'block';
+    document.getElementById('upsell-loading').style.display = 'block';
+    document.getElementById('upsell-content').style.display = 'none';
+    
+    // Hide continue button until decision is made
+    document.getElementById('continue-btn').style.display = 'none';
+    
+    // If product is already loaded, show content immediately
+    if (finalUpsellProduct) {
+        showUpsellContent();
+    }
+}
+
+function showUpsellContent() {
+    // Hide loading and show content
+    document.getElementById('upsell-loading').style.display = 'none';
+    document.getElementById('upsell-content').style.display = 'block';
+    
+    // Setup inline buy button
+    const buyButton = document.getElementById('inline-buy-btn');
+    if (!buyButton.hasAttribute('data-listener-added')) {
+        buyButton.addEventListener('click', handleInlinePurchase);
+        buyButton.setAttribute('data-listener-added', 'true');
+    }
+}
+
 function showUpsellPopup() {
     if (!finalUpsellProduct) return;
     
@@ -132,6 +184,55 @@ function showUpsellPopup() {
 
 function closePopup() {
     document.getElementById('upsell-popup').style.display = 'none';
+}
+
+function skipUpsell() {
+    // Redirect directly to final success page
+    window.location.href = 'final-success.html';
+}
+
+function showInlineError(message) {
+    const errorDiv = document.getElementById('inline-error-message');
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+    // Scroll error into view
+    errorDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function hideInlineError() {
+    const errorDiv = document.getElementById('inline-error-message');
+    errorDiv.style.display = 'none';
+}
+
+async function handleInlinePurchase() {
+    if (!finalUpsellProduct) {
+        showInlineError('Product not loaded. Please try again.');
+        return;
+    }
+    
+    const buyButton = document.getElementById('inline-buy-btn');
+    hideInlineError();
+    setButtonLoading(buyButton, true);
+    
+    try {
+        const customerInfo = localStorage.getItem(AppConfig.STORAGE_KEYS.CUSTOMER_INFO);
+        const customerData = customerInfo ? JSON.parse(customerInfo) : null;
+        
+        // Handle free products
+        if (finalUpsellProduct.price.amount === 0) {
+            await handleFreeProduct(customerData);
+            return;
+        }
+        
+        // Handle paid products
+        await handlePaidProduct(customerData);
+        
+    } catch (error) {
+        console.error('Inline purchase error:', error);
+        showInlineError('Payment failed: ' + error.message);
+    } finally {
+        setButtonLoading(buyButton, false);
+    }
 }
 
 async function handlePopupPurchase() {
@@ -197,6 +298,25 @@ async function handlePaidProduct(customerData) {
         throw new Error('Customer or payment method not found. Please try again.');
     }
     
+    // Get original purchase information for comprehensive metadata
+    const mainProduct = localStorage.getItem(AppConfig.STORAGE_KEYS.MAIN_PRODUCT);
+    const paymentSuccess = localStorage.getItem(AppConfig.STORAGE_KEYS.PAYMENT_SUCCESS);
+    
+    let originalProductId = null;
+    let checkoutUpsellId = null;
+    
+    if (mainProduct) {
+        const main = JSON.parse(mainProduct);
+        originalProductId = main.product.id;
+    }
+    
+    if (paymentSuccess) {
+        const payment = JSON.parse(paymentSuccess);
+        if (payment.includedUpsell) {
+            checkoutUpsellId = AppConfig.getProductId('CHECKOUT_UPSELL');
+        }
+    }
+
     const response = await fetch(AppConfig.getApiUrl('/api/create-payment-intent'), {
         method: 'POST',
         headers: {
@@ -207,8 +327,22 @@ async function handlePaidProduct(customerData) {
             currency: AppConfig.CURRENCY.CODE,
             customer: customerId,
             metadata: {
+                // Final upsell product info
                 final_upsell: finalUpsellProduct.product.id,
-                product_name: finalUpsellProduct.product.name
+                product_name: finalUpsellProduct.product.name,
+                
+                // Customer information (same as checkout)
+                customer_name: customerData ? `${customerData.firstName} ${customerData.lastName}` : '',
+                customer_email: customerData ? customerData.email : '',
+                customer_phone: customerData ? customerData.phone : '',
+                
+                // Original purchase context
+                main_product: originalProductId,
+                checkout_upsell: checkoutUpsellId,
+                purchase_flow: 'success_page_upsell',
+                
+                // Transaction context
+                original_payment_intent: paymentSuccess ? JSON.parse(paymentSuccess).paymentIntentId : null
             }
         })
     });

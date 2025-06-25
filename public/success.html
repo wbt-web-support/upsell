@@ -21,8 +21,51 @@
             </div>
         </div>
         
+        <!-- Inline Upsell Section -->
+        <div id="inline-upsell" class="upsell-inline-offer" style="display: none;">
+            <!-- Loading State -->
+            <div id="upsell-loading" class="upsell-loading-section">
+                <div class="upsell-loading-spinner"></div>
+                <p>Loading special offer...</p>
+            </div>
+            
+            <!-- Offer Content -->
+            <div id="upsell-content" style="display: none;">
+                <div class="upsell-offer-header">
+                    <h2>🎉 Special Offer Just For You!</h2>
+                    <p>Complete your purchase with this exclusive deal</p>
+                </div>
+                
+                <div class="upsell-offer-content">
+                    <div class="upsell-offer-image">
+                        <span>💎</span>
+                    </div>
+                    <div class="upsell-offer-details">
+                        <h3 id="inline-product-name">Loading...</h3>
+                        <p id="inline-product-description">Special final offer just for you!</p>
+                        
+                        <div class="upsell-offer-pricing">
+                            <span class="upsell-current-price" id="inline-product-price">£0.00</span>
+                            <span class="upsell-savings">Limited Time Offer!</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="upsell-offer-actions">
+                    <div id="inline-error-message" class="upsell-error-message" style="display: none;"></div>
+                    <button id="inline-buy-btn" class="upsell-btn upsell-primary">
+                        <span class="upsell-btn-text">Yes, Add This To My Order!</span>
+                        <span class="upsell-loader" style="display: none;">Processing...</span>
+                    </button>
+                    <button class="upsell-btn upsell-secondary" onclick="skipUpsell()">
+                        No Thanks, Continue
+                    </button>
+                </div>
+            </div>
+        </div>
+        
         <div class="upsell-action-buttons">
-            <button class="upsell-primary-btn" onclick="window.location.href='final-success.html'">
+            <button id="continue-btn" class="upsell-primary-btn" onclick="window.location.href='final-success.html'">
                 Continue
             </button>
         </div>

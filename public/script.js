@@ -163,30 +163,16 @@ function getUrlParameter(name) {
     return urlParams.get(name);
 }
 
-// Enhanced notification system
+// Enhanced notification system (DEPRECATED - Use inline errors instead)
 function showNotification(message, type = 'info', duration = 5000) {
+    // This function is deprecated - use inline error messages instead
+    console.warn('showNotification is deprecated. Use inline error messages instead.');
+    console.log('Notification:', type, message);
+    
+    // For legacy compatibility, fall back to console logging
     // Remove existing notifications
     const existing = document.querySelectorAll('.upsell-notification');
     existing.forEach(n => n.remove());
-    
-    const notification = document.createElement('div');
-    notification.className = `upsell-notification upsell-notification-${type}`;
-    notification.innerHTML = `
-        <div class="upsell-notification-content">
-            <span class="upsell-notification-icon">${getNotificationIcon(type)}</span>
-            <span class="upsell-notification-message">${message}</span>
-            <button class="upsell-notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
-        </div>
-    `;
-    
-    document.body.appendChild(notification);
-    
-    // Auto-remove after duration
-    setTimeout(() => {
-        if (notification.parentElement) {
-            notification.remove();
-        }
-    }, duration);
 }
 
 function getNotificationIcon(type) {

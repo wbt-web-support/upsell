@@ -19,7 +19,7 @@ async function loadProducts() {
         // Load main product from localStorage
         const mainProductData = localStorage.getItem(AppConfig.STORAGE_KEYS.MAIN_PRODUCT);
         if (!mainProductData) {
-            showNotification('No product selected. Redirecting to main page...', 'warning');
+            showPaymentError('No product selected. Redirecting to main page...');
             setTimeout(() => window.location.href = 'index.html', 2000);
             return;
         }
@@ -162,24 +162,25 @@ function validateCustomerForm() {
     const phone = document.getElementById('phone').value.trim();
     
     if (!firstName || !lastName || !email || !phone) {
-        showNotification('Please fill in all required customer information fields.', 'warning');
+        showCustomerError('Please fill in all required customer information fields.');
         return false;
     }
     
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-        showNotification('Please enter a valid email address.', 'error');
+        showCustomerError('Please enter a valid email address.');
         return false;
     }
     
     // Phone validation
     const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,}$/;
     if (!phoneRegex.test(phone)) {
-        showNotification('Please enter a valid phone number.', 'error');
+        showCustomerError('Please enter a valid phone number.');
         return false;
     }
     
+    hideCustomerError();
     return true;
 }
 
@@ -190,6 +191,30 @@ function getCustomerData() {
         email: document.getElementById('email').value.trim(),
         phone: document.getElementById('phone').value.trim()
     };
+}
+
+function showCustomerError(message) {
+    const errorDiv = document.getElementById('customer-error-message');
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+    errorDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function hideCustomerError() {
+    const errorDiv = document.getElementById('customer-error-message');
+    errorDiv.style.display = 'none';
+}
+
+function showPaymentError(message) {
+    const errorDiv = document.getElementById('payment-error-message');
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+    errorDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function hidePaymentError() {
+    const errorDiv = document.getElementById('payment-error-message');
+    errorDiv.style.display = 'none';
 }
 
 function formatPrice(amountInCents) {
@@ -206,7 +231,8 @@ async function sendCheckoutWebhook(customerData, orderData) {
                 lastName: customerData.lastName,
                 fullName: `${customerData.firstName} ${customerData.lastName}`,
                 email: customerData.email,
-                phone: customerData.phone
+                phone: customerData.phone,
+                tag: 'checkout'
             },
             order: orderData
         };
@@ -238,6 +264,7 @@ async function handleSubmit(event) {
     }
     
     const submitButton = document.getElementById('submit-payment');
+    hidePaymentError();
     setButtonLoading(submitButton, true);
     
     try {
@@ -293,7 +320,7 @@ async function handleSubmit(event) {
         });
         
         if (result.error) {
-            document.getElementById('card-errors').textContent = result.error.message;
+            showPaymentError('Payment failed: ' + result.error.message);
         } else {
             // Payment succeeded - store customer data for future use
             localStorage.setItem(AppConfig.STORAGE_KEYS.CUSTOMER_INFO, JSON.stringify(customerData));
@@ -329,7 +356,7 @@ async function handleSubmit(event) {
         
     } catch (error) {
         console.error('Payment error:', error);
-        document.getElementById('card-errors').textContent = 'Payment failed: ' + error.message;
+        showPaymentError('Payment failed: ' + error.message);
     } finally {
         setButtonLoading(submitButton, false);
     }
