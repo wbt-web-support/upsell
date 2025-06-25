@@ -98,8 +98,8 @@ function handleUpsellSuccess(step) {
 function setButtonLoading(button, isLoading) {
     if (!button) return;
     
-    const btnText = button.querySelector('.btn-text');
-    const loader = button.querySelector('.loader');
+    const btnText = button.querySelector('.upsell-btn-text');
+    const loader = button.querySelector('.upsell-loader');
     
     if (isLoading) {
         button.classList.add('loading');
@@ -166,16 +166,16 @@ function getUrlParameter(name) {
 // Enhanced notification system
 function showNotification(message, type = 'info', duration = 5000) {
     // Remove existing notifications
-    const existing = document.querySelectorAll('.notification');
+    const existing = document.querySelectorAll('.upsell-notification');
     existing.forEach(n => n.remove());
     
     const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
+    notification.className = `upsell-notification upsell-notification-${type}`;
     notification.innerHTML = `
-        <div class="notification-content">
-            <span class="notification-icon">${getNotificationIcon(type)}</span>
-            <span class="notification-message">${message}</span>
-            <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
+        <div class="upsell-notification-content">
+            <span class="upsell-notification-icon">${getNotificationIcon(type)}</span>
+            <span class="upsell-notification-message">${message}</span>
+            <button class="upsell-notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
         </div>
     `;
     

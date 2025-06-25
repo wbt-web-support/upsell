@@ -7,16 +7,16 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <header class="hero">
+    <div class="upsell-container">
+        <header class="upsell-hero">
             <h1>Premium Course</h1>
-            <p class="subtitle">Learn the essentials</p>
+            <p class="upsell-subtitle">Learn the essentials</p>
         </header>
 
-        <main class="product-section">
-            <div class="product-card">
-                <div class="product-image">
-                    <div class="placeholder-image">
+        <main class="upsell-product-section">
+            <div class="upsell-product-card">
+                <div class="upsell-product-image">
+                    <div class="upsell-placeholder-image">
                         <span>📚</span>
                     </div>
                 </div>
@@ -24,75 +24,26 @@
                 <h2 id="product-name">Loading...</h2>
                 <p id="product-description"></p>
                 
-                <div class="pricing">
-                    <div class="price">
-                        <span class="current-price" id="product-price">Loading...</span>
+                <div class="upsell-pricing">
+                    <div class="upsell-price">
+                        <span class="upsell-current-price" id="product-price">Loading...</span>
                     </div>
                 </div>
                 
-                <button id="continue-btn" class="checkout-btn" disabled>
-                    <span class="btn-text">Continue</span>
-                    <span class="loader" style="display: none;">Loading...</span>
+                <button id="continue-btn" class="upsell-checkout-btn" disabled>
+                    <span class="upsell-btn-text">Continue</span>
+                    <span class="upsell-loader" style="display: none;">Loading...</span>
                 </button>
                 
-                <div class="guarantee">
+                <div class="upsell-guarantee">
                     <p>30-Day Money Back Guarantee</p>
                 </div>
             </div>
         </main>
     </div>
 
+    <script src="config.js"></script>
     <script src="script.js"></script>
-    <script>
-        // Configuration
-        const API_URL = window.location.hostname === 'localhost' 
-            ? 'http://localhost:3000' 
-            : ''; // Empty string for relative URLs in production
-        
-        const MAIN_PRODUCT_ID = 'prod_SYt7f28o0ZyHn2';
-        
-        document.addEventListener('DOMContentLoaded', async function() {
-            await loadProduct();
-            initializeContinue();
-        });
-        
-        async function loadProduct() {
-            try {
-                setButtonLoading(document.getElementById('continue-btn'), true);
-                
-                const response = await fetch(`${API_URL}/api/get-product?product_id=${MAIN_PRODUCT_ID}`);
-                const data = await response.json();
-                
-                if (data.error) {
-                    alert('Error loading product: ' + data.error);
-                    return;
-                }
-                
-                productData = data;
-                
-                // Update UI with product data
-                document.getElementById('product-name').textContent = data.product.name;
-                document.getElementById('product-description').textContent = data.product.description || '';
-                document.getElementById('product-price').textContent = data.price.formatted;
-                
-                document.getElementById('continue-btn').disabled = false;
-                setButtonLoading(document.getElementById('continue-btn'), false);
-                
-            } catch (error) {
-                console.error('Error loading product:', error);
-                alert('Failed to load product. Please try again.');
-            }
-        }
-        
-        function initializeContinue() {
-            const continueBtn = document.getElementById('continue-btn');
-            
-            continueBtn.addEventListener('click', function() {
-                // Store product data for checkout page
-                localStorage.setItem('mainProduct', JSON.stringify(productData));
-                window.location.href = 'checkout.html';
-            });
-        }
-    </script>
+    <script src="index.js"></script>
 </body>
 </html> 

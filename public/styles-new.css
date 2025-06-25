@@ -555,13 +555,6 @@ body {
     background: #f8f9fa;
 }
 
-.upsell-savings {
-    color: #1a1a1a;
-    font-size: 14px;
-    font-weight: 500;
-    margin: 8px 0 0 0;
-}
-
 .upsell-popup-actions {
     padding: 0 24px 24px 24px;
     display: flex;

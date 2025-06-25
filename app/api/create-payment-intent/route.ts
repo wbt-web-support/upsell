@@ -5,6 +5,17 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-05-28.basil',
 });
 
+// CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+export async function OPTIONS(request: NextRequest) {
+  return new Response(null, { status: 200, headers: corsHeaders });
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -15,7 +26,7 @@ export async function POST(request: NextRequest) {
     if (!amount || amount <= 0) {
       return NextResponse.json(
         { error: 'Payment amount must be greater than £0. Free products should be handled separately.' },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -77,7 +88,7 @@ export async function POST(request: NextRequest) {
       clientSecret: paymentIntent.client_secret,
       paymentIntentId: paymentIntent.id,
       customerId: customerId,
-    });
+    }, { headers: corsHeaders });
   } catch (error) {
     console.error('Error creating payment intent:', error);
     
@@ -85,7 +96,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json(
       { error: 'Failed to create payment intent: ' + errorMessage },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 } 

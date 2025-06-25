@@ -5,6 +5,17 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-05-28.basil',
 });
 
+// CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+export async function OPTIONS(request: NextRequest) {
+  return new Response(null, { status: 200, headers: corsHeaders });
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -13,7 +24,7 @@ export async function GET(request: NextRequest) {
     if (!productId) {
       return NextResponse.json(
         { error: 'Product ID is required' },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -29,7 +40,7 @@ export async function GET(request: NextRequest) {
     if (prices.data.length === 0) {
       return NextResponse.json(
         { error: 'No active prices found for this product' },
-        { status: 404 }
+        { status: 404, headers: corsHeaders }
       );
     }
 
@@ -54,12 +65,12 @@ export async function GET(request: NextRequest) {
         formatted: formattedPrice,
         raw_formatted: (price.unit_amount! / 100).toFixed(2),
       }
-    });
+    }, { headers: corsHeaders });
   } catch (error) {
     console.error('Error fetching product:', error);
     return NextResponse.json(
       { error: 'Failed to fetch product details' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 } 
