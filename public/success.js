@@ -9,7 +9,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     stripe = Stripe(AppConfig.STRIPE_PUBLISHABLE_KEY);
     
     await loadPaymentDetails();
-    await loadFinalUpsellProduct();
     showOrderDetails();
     
     // Show inline upsell after a delay
@@ -80,21 +79,10 @@ async function loadFinalUpsellProduct() {
                 updateInlineContent(data);
             }
         }
-        
-        // If inline upsell is currently showing loading, switch to content
-        const upsellSection = document.getElementById('inline-upsell');
-        const loadingSection = document.getElementById('upsell-loading');
-        if (upsellSection.style.display === 'block' && loadingSection.style.display === 'block') {
-            showUpsellContent();
-        }
     } catch (error) {
         console.error('Error loading final upsell product:', error);
-        // If there's an error and we're showing loading, hide the section
-        const upsellSection = document.getElementById('inline-upsell');
-        const loadingSection = document.getElementById('upsell-loading');
-        if (upsellSection.style.display === 'block' && loadingSection.style.display === 'block') {
-            skipUpsell();
-        }
+        // If there's an error loading the product, we'll handle it in showInlineUpsell
+        throw error;
     }
 }
 
@@ -142,7 +130,7 @@ function showOrderDetails() {
     document.getElementById('purchased-items').innerHTML = html;
 }
 
-function showInlineUpsell() {
+async function showInlineUpsell() {
     // Show inline upsell section with loading state
     document.getElementById('inline-upsell').style.display = 'block';
     document.getElementById('upsell-loading').style.display = 'block';
@@ -151,9 +139,36 @@ function showInlineUpsell() {
     // Hide continue button until decision is made
     document.getElementById('continue-btn').style.display = 'none';
     
-    // If product is already loaded, show content immediately
-    if (finalUpsellProduct) {
-        showUpsellContent();
+    try {
+        // Start loading the product and ensure minimum loading time
+        const loadingStartTime = Date.now();
+        const minimumLoadingTime = 1500; // 1.5 seconds minimum loading
+        
+        // Load the product if not already loaded
+        if (!finalUpsellProduct) {
+            await loadFinalUpsellProduct();
+        }
+        
+        // Calculate remaining time to show loading
+        const loadingDuration = Date.now() - loadingStartTime;
+        const remainingTime = Math.max(0, minimumLoadingTime - loadingDuration);
+        
+        // Wait for remaining time before showing content
+        setTimeout(() => {
+            if (finalUpsellProduct) {
+                showUpsellContent();
+            } else {
+                // If product still not loaded, skip upsell
+                skipUpsell();
+            }
+        }, remainingTime);
+        
+    } catch (error) {
+        console.error('Error loading upsell:', error);
+        // If loading fails, wait for minimum time then skip
+        setTimeout(() => {
+            skipUpsell();
+        }, 1500);
     }
 }
 

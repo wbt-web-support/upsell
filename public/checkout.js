@@ -115,6 +115,12 @@ function setupCustomerFormValidation() {
     
     requiredFields.forEach(fieldId => {
         const field = document.getElementById(fieldId);
+        
+        // Add touched class when user interacts with field
+        field.addEventListener('focus', function() {
+            this.classList.add('touched');
+        });
+        
         field.addEventListener('blur', validateField);
         field.addEventListener('input', clearFieldError);
     });
@@ -124,8 +130,10 @@ function validateField(event) {
     const field = event.target;
     const value = field.value.trim();
     
+    // Mark as touched if not already
+    field.classList.add('touched');
+    
     if (!value) {
-        field.style.borderColor = '#e53e3e';
         return false;
     }
     
@@ -133,7 +141,6 @@ function validateField(event) {
     if (field.type === 'email') {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(value)) {
-            field.style.borderColor = '#e53e3e';
             return false;
         }
     }
@@ -142,17 +149,16 @@ function validateField(event) {
     if (field.type === 'tel') {
         const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,}$/;
         if (!phoneRegex.test(value)) {
-            field.style.borderColor = '#e53e3e';
             return false;
         }
     }
     
-    field.style.borderColor = '#38a169';
     return true;
 }
 
 function clearFieldError(event) {
-    event.target.style.borderColor = '#ddd';
+    // CSS handles the visual feedback now through :valid/:invalid classes
+    // No need to manually set border colors
 }
 
 function validateCustomerForm() {

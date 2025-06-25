@@ -299,11 +299,11 @@ body {
     border-color: #1a1a1a;
 }
 
-.upsell-form-group input:invalid {
+.upsell-form-group input.touched:invalid {
     border-color: #e74c3c;
 }
 
-.upsell-form-group input:valid {
+.upsell-form-group input.touched:valid {
     border-color: #27ae60;
 }
 
