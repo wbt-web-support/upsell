@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete!</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="final-success">
+            <div class="success-animation">
+                <div class="checkmark">✓</div>
+            </div>
+            
+            <h1 id="success-title">All Done!</h1>
+            <p id="success-message">Your order is complete.</p>
+            
+            <div class="next-steps">
+                <h3>Next Steps:</h3>
+                <div class="step">
+                    <span class="step-number">1</span>
+                    <div class="step-content">
+                        <h4>Check Email</h4>
+                        <p>Login details sent</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <span class="step-number">2</span>
+                    <div class="step-content">
+                        <h4>Access Content</h4>
+                        <p>Start learning now</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <span class="step-number">3</span>
+                    <div class="step-content">
+                        <h4>Get Support</h4>
+                        <p>Join our community</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="purchase-summary" id="purchase-summary">
+                <h3>Complete Purchase Summary:</h3>
+                
+                <div class="customer-details" id="customer-details">
+                    <!-- Customer info will be populated by JavaScript -->
+                </div>
+                
+                <div class="summary-items" id="summary-items">
+                    <!-- Populated by JavaScript -->
+                </div>
+                <div class="total" id="total-amount">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+            
+            <div class="action-buttons">
+                <button class="primary-btn" onclick="window.location.href='index.html'">
+                    Back to Home
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // Configuration
+        const API_URL = window.location.hostname === 'localhost' 
+            ? 'http://localhost:3000' 
+            : ''; // Empty string for relative URLs in production
+            
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const step = urlParams.get('step');
+            
+            updateSuccessMessage(step);
+            displayActualPurchaseSummary();
+            
+            // Clean up localStorage after showing summary
+            setTimeout(() => {
+                localStorage.removeItem('customerData');
+                localStorage.removeItem('paymentSuccess');
+                localStorage.removeItem('mainProduct');
+                localStorage.removeItem('finalUpsellPurchase');
+                localStorage.removeItem('customerInfo');
+            }, 1000);
+        });
+        
+        function updateSuccessMessage(step) {
+            const title = document.getElementById('success-title');
+            const message = document.getElementById('success-message');
+            
+            switch(step) {
+                case 'skipped':
+                    title.textContent = 'Thank You!';
+                    message.textContent = 'You have access to your course.';
+                    break;
+                case 'complete':
+                    title.textContent = 'Amazing!';
+                    message.textContent = 'You have access to everything.';
+                    break;
+                case 'expired':
+                    title.textContent = 'No Problem!';
+                    message.textContent = 'You still have your courses.';
+                    break;
+                default:
+                    title.textContent = 'All Done!';
+                    message.textContent = 'Your order is complete.';
+            }
+        }
+        
+        function displayActualPurchaseSummary() {
+            const summaryItems = document.getElementById('summary-items');
+            const totalAmount = document.getElementById('total-amount');
+            const customerDetails = document.getElementById('customer-details');
+            
+            // Display customer information
+            const customerInfo = localStorage.getItem('customerInfo');
+            if (customerInfo) {
+                const customer = JSON.parse(customerInfo);
+                customerDetails.innerHTML = `
+                    <div class="customer-info-display">
+                        <h4>Customer Details:</h4>
+                        <p><strong>Name:</strong> ${customer.firstName} ${customer.lastName}</p>
+                        <p><strong>Email:</strong> ${customer.email}</p>
+                        <p><strong>Phone:</strong> ${customer.phone}</p>
+                    </div>
+                `;
+            }
+            
+            let html = '';
+            let totalCents = 0;
+            let itemCount = 0;
+            
+            // Get main product data
+            const mainProductData = localStorage.getItem('mainProduct');
+            if (mainProductData) {
+                const mainProduct = JSON.parse(mainProductData);
+                html += `
+                    <div class="summary-item">
+                        <span>${mainProduct.product.name}</span>
+                        <span>${mainProduct.price.formatted}</span>
+                    </div>
+                `;
+                totalCents += mainProduct.price.amount;
+                itemCount++;
+            }
+            
+            // Check if upsell was included in checkout
+            const paymentData = localStorage.getItem('paymentSuccess');
+            if (paymentData) {
+                const payment = JSON.parse(paymentData);
+                if (payment.includedUpsell) {
+                    // We need to get the upsell product data
+                    // For now, we'll try to fetch it or show a placeholder
+                    fetchAndDisplayUpsell().then(upsellData => {
+                        if (upsellData) {
+                            const upsellHtml = `
+                                <div class="summary-item">
+                                    <span>${upsellData.product.name}</span>
+                                    <span>${upsellData.price.formatted}</span>
+                                </div>
+                            `;
+                            // Insert upsell item before total
+                            const summaryItemsEl = document.getElementById('summary-items');
+                            const totalEl = document.getElementById('total-amount');
+                            summaryItemsEl.insertAdjacentHTML('beforeend', upsellHtml);
+                            
+                            // Update total
+                            totalCents += upsellData.price.amount;
+                            updateTotal(totalCents, itemCount + 1);
+                        }
+                    });
+                }
+            }
+            
+            // Check for final upsell purchase
+            const finalUpsellData = localStorage.getItem('finalUpsellPurchase');
+            if (finalUpsellData) {
+                const finalUpsell = JSON.parse(finalUpsellData);
+                const priceDisplay = finalUpsell.price.amount === 0 ? 'FREE' : finalUpsell.price.formatted;
+                
+                html += `
+                    <div class="summary-item">
+                        <span>${finalUpsell.product.name}</span>
+                        <span>${priceDisplay}</span>
+                    </div>
+                `;
+                
+                if (finalUpsell.price.amount > 0) {
+                    totalCents += finalUpsell.price.amount;
+                }
+                itemCount++;
+            }
+            
+            // Display items
+            summaryItems.innerHTML = html;
+            
+            // Update total
+            updateTotal(totalCents, itemCount);
+        }
+        
+        function updateTotal(totalCents, itemCount) {
+            const totalAmount = document.getElementById('total-amount');
+            const totalFormatted = (totalCents / 100).toFixed(2);
+            
+            totalAmount.innerHTML = `
+                <div class="total-row">
+                    <span><strong>Total (${itemCount} item${itemCount !== 1 ? 's' : ''}):</strong></span>
+                    <span><strong>£${totalFormatted}</strong></span>
+                </div>
+            `;
+        }
+        
+        async function fetchAndDisplayUpsell() {
+            try {
+                // Try to fetch the upsell product data
+                const response = await fetch('/api/get-product?product_id=prod_SYtASqEQNTXXDi');
+                const data = await response.json();
+                
+                if (!data.error) {
+                    return data;
+                }
+            } catch (error) {
+                console.error('Error fetching upsell product:', error);
+            }
+            
+            // Fallback if API fails
+            return null;
+        }
+    </script>
+</body>
+</html> 

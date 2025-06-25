@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="progress-bar">
+            <div class="progress-step active">1. Product</div>
+            <div class="progress-step active">2. Checkout</div>
+            <div class="progress-step">3. Complete</div>
+        </div>
+        
+        <header class="hero">
+            <h1>Checkout</h1>
+            <p class="subtitle">Complete your purchase</p>
+        </header>
+
+        <main class="checkout-section">
+            <div class="checkout-card">
+                <div class="order-summary">
+                    <h3>Order Summary</h3>
+                    <div class="order-item">
+                        <span id="main-product-name">Loading...</span>
+                        <span id="main-product-price">£0.00</span>
+                    </div>
+                    
+                    <div class="upsell-option">
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="add-upsell">
+                            <span class="checkmark"></span>
+                            <div class="upsell-info">
+                                <span id="upsell-product-name">Loading upsell...</span>
+                                <span id="upsell-product-price">£0.00</span>
+                            </div>
+                        </label>
+                    </div>
+                    
+                    <div class="total-line">
+                        <span><strong>Total:</strong></span>
+                        <span><strong id="total-amount">£0.00</strong></span>
+                    </div>
+                </div>
+                
+                <div class="customer-info">
+                    <h3>Customer Information</h3>
+                    <form id="customer-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="first-name">First Name *</label>
+                                <input type="text" id="first-name" name="firstName" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="last-name">Last Name *</label>
+                                <input type="text" id="last-name" name="lastName" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="email">Email Address *</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="phone">Phone Number *</label>
+                            <input type="tel" id="phone" name="phone" required>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="payment-form">
+                    <h3>Payment Details</h3>
+                    <form id="payment-form">
+                        <div id="card-element">
+                            <!-- Stripe Elements will create form elements here -->
+                        </div>
+                        <div id="card-errors" role="alert"></div>
+                        
+                        <button id="submit-payment" class="checkout-btn">
+                            <span class="btn-text">Complete Payment</span>
+                            <span class="loader" style="display: none;">Processing...</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // Configuration
+        const API_URL = window.location.hostname === 'localhost' 
+            ? 'http://localhost:3000' 
+            : ''; // Empty string for relative URLs in production
+            
+        const STRIPE_PUBLISHABLE_KEY = 'pk_test_51RdlIsPMvURrXJGvNX7UdYKOxdVRZhOL4tF30FEBtgwrSKjZOeTpGsEanJhTrWu6xbB2KwpUnQVlsecw3iehapiM00iLLooZV3';
+        const UPSELL_PRODUCT_ID = 'prod_SYtASqEQNTXXDi';
+        
+        let stripe;
+        let cardElement;
+        let mainProduct = null;
+        let upsellProduct = null;
+        
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Initialize Stripe with publishable key
+            stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+            
+            await loadProducts();
+            setupPaymentForm();
+            initializeCheckout();
+        });
+        
+        async function loadProducts() {
+            try {
+                // Load main product from localStorage
+                const mainProductData = localStorage.getItem('mainProduct');
+                if (!mainProductData) {
+                    showNotification('No product selected. Redirecting to main page...', 'warning');
+                    setTimeout(() => window.location.href = 'index.html', 2000);
+                    return;
+                }
+                
+                mainProduct = JSON.parse(mainProductData);
+                
+                // Load upsell product
+                const upsellResponse = await fetch(`${API_URL}/api/get-product?product_id=${UPSELL_PRODUCT_ID}`);
+                const upsellData = await upsellResponse.json();
+                
+                if (upsellData.error) {
+                    console.error('Error loading upsell product:', upsellData.error);
+                    document.querySelector('.upsell-option').style.display = 'none';
+                } else {
+                    upsellProduct = upsellData;
+                }
+                
+                updateOrderSummary();
+                
+            } catch (error) {
+                console.error('Error loading products:', error);
+            }
+        }
+        
+        function setupPaymentForm() {
+            elements = stripe.elements();
+            
+            cardElement = elements.create('card', {
+                style: {
+                    base: {
+                        fontSize: '16px',
+                        color: '#424770',
+                        '::placeholder': {
+                            color: '#aab7c4',
+                        },
+                    },
+                },
+            });
+            
+            cardElement.mount('#card-element');
+            
+            cardElement.on('change', function(event) {
+                const displayError = document.getElementById('card-errors');
+                if (event.error) {
+                    displayError.textContent = event.error.message;
+                } else {
+                    displayError.textContent = '';
+                }
+            });
+        }
+        
+        function updateOrderSummary() {
+            if (!mainProduct) return;
+            
+            document.getElementById('main-product-name').textContent = mainProduct.product.name;
+            document.getElementById('main-product-price').textContent = mainProduct.price.formatted;
+            
+            if (upsellProduct) {
+                document.getElementById('upsell-product-name').textContent = upsellProduct.product.name;
+                document.getElementById('upsell-product-price').textContent = upsellProduct.price.formatted;
+            }
+            
+            calculateTotal();
+        }
+        
+        function calculateTotal() {
+            if (!mainProduct) return;
+            
+            let total = mainProduct.price.amount;
+            const addUpsell = document.getElementById('add-upsell').checked;
+            
+            if (addUpsell && upsellProduct) {
+                total += upsellProduct.price.amount;
+            }
+            
+            document.getElementById('total-amount').textContent = `£${(total / 100).toFixed(2)}`;
+        }
+        
+        function initializeCheckout() {
+            // Update total when checkbox changes
+            document.getElementById('add-upsell').addEventListener('change', calculateTotal);
+            
+            // Handle form submission
+            const form = document.getElementById('payment-form');
+            form.addEventListener('submit', handleSubmit);
+            
+            // Add real-time validation for customer form
+            setupCustomerFormValidation();
+        }
+        
+        function setupCustomerFormValidation() {
+            const requiredFields = ['first-name', 'last-name', 'email', 'phone'];
+            
+            requiredFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                field.addEventListener('blur', validateField);
+                field.addEventListener('input', clearFieldError);
+            });
+        }
+        
+        function validateField(event) {
+            const field = event.target;
+            const value = field.value.trim();
+            
+            if (!value) {
+                field.style.borderColor = '#e53e3e';
+                return false;
+            }
+            
+            // Email validation
+            if (field.type === 'email') {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(value)) {
+                    field.style.borderColor = '#e53e3e';
+                    return false;
+                }
+            }
+            
+            // Phone validation (basic)
+            if (field.type === 'tel') {
+                const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,}$/;
+                if (!phoneRegex.test(value)) {
+                    field.style.borderColor = '#e53e3e';
+                    return false;
+                }
+            }
+            
+            field.style.borderColor = '#38a169';
+            return true;
+        }
+        
+        function clearFieldError(event) {
+            event.target.style.borderColor = '#ddd';
+        }
+        
+        function validateCustomerForm() {
+            const firstName = document.getElementById('first-name').value.trim();
+            const lastName = document.getElementById('last-name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            
+            if (!firstName || !lastName || !email || !phone) {
+                showNotification('Please fill in all required customer information fields.', 'warning');
+                return false;
+            }
+            
+            // Email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showNotification('Please enter a valid email address.', 'error');
+                return false;
+            }
+            
+            // Phone validation
+            const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,}$/;
+            if (!phoneRegex.test(phone)) {
+                showNotification('Please enter a valid phone number.', 'error');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        function getCustomerData() {
+            return {
+                firstName: document.getElementById('first-name').value.trim(),
+                lastName: document.getElementById('last-name').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                phone: document.getElementById('phone').value.trim()
+            };
+        }
+        
+        function formatPrice(amountInCents) {
+            return `£${(amountInCents / 100).toFixed(2)}`;
+        }
+        
+        async function sendCheckoutWebhook(customerData, orderData) {
+            try {
+                const webhookData = {
+                    event: 'checkout_completed',
+                    timestamp: new Date().toISOString(),
+                    customer: {
+                        firstName: customerData.firstName,
+                        lastName: customerData.lastName,
+                        fullName: `${customerData.firstName} ${customerData.lastName}`,
+                        email: customerData.email,
+                        phone: customerData.phone
+                    },
+                    order: orderData
+                };
+                
+                console.log('Sending checkout webhook:', webhookData);
+                
+                const response = await fetch('https://hooks.zapier.com/hooks/catch/2299769/ub2fktg/', {
+                    method: 'POST',
+                    body: JSON.stringify(webhookData)
+                });
+                
+                if (response.ok) {
+                    console.log('Checkout webhook sent successfully');
+                } else {
+                    console.warn('Checkout webhook failed:', response.status);
+                }
+            } catch (error) {
+                console.error('Error sending checkout webhook:', error);
+                // Don't block the user flow if webhook fails
+            }
+        }
+        
+        async function handleSubmit(event) {
+            event.preventDefault();
+            
+            // Validate customer information first
+            if (!validateCustomerForm()) {
+                return;
+            }
+            
+            const submitButton = document.getElementById('submit-payment');
+            setButtonLoading(submitButton, true);
+            
+            try {
+                // Calculate final amount
+                let amount = mainProduct.price.amount;
+                const addUpsell = document.getElementById('add-upsell').checked;
+                
+                if (addUpsell && upsellProduct) {
+                    amount += upsellProduct.price.amount;
+                }
+                
+                // Get customer data
+                const customerData = getCustomerData();
+                
+                // Create payment intent with customer information
+                const response = await fetch(`${API_URL}/api/create-payment-intent`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        amount: amount,
+                        currency: 'gbp',
+                        customerInfo: customerData,
+                        metadata: {
+                            main_product: mainProduct.product.id,
+                            upsell_product: addUpsell && upsellProduct ? upsellProduct.product.id : null,
+                            customer_name: `${customerData.firstName} ${customerData.lastName}`,
+                            customer_email: customerData.email,
+                            customer_phone: customerData.phone
+                        }
+                    })
+                });
+                
+                const responseData = await response.json();
+                
+                if (!response.ok || responseData.error) {
+                    throw new Error(responseData.error || 'Failed to create payment intent');
+                }
+                
+                const { clientSecret, paymentIntentId } = responseData;
+                
+                // Confirm payment with customer information
+                const result = await stripe.confirmCardPayment(clientSecret, {
+                    payment_method: {
+                        card: cardElement,
+                        billing_details: {
+                            name: `${customerData.firstName} ${customerData.lastName}`,
+                            email: customerData.email,
+                            phone: customerData.phone,
+                        }
+                    }
+                });
+                
+                if (result.error) {
+                    document.getElementById('card-errors').textContent = result.error.message;
+                } else {
+                    // Payment succeeded - store customer data for future use
+                    localStorage.setItem('customerInfo', JSON.stringify(customerData));
+                    localStorage.setItem('paymentSuccess', JSON.stringify({
+                        paymentIntentId: paymentIntentId,
+                        includedUpsell: addUpsell
+                    }));
+                    
+                    // Prepare order data for webhook
+                    const orderData = {
+                        paymentIntentId: paymentIntentId,
+                        mainProduct: {
+                            id: mainProduct.product.id,
+                            name: mainProduct.product.name,
+                            price: mainProduct.price.amount,
+                            priceFormatted: formatPrice(mainProduct.price.amount)
+                        },
+                        upsellProduct: (addUpsell && upsellProduct) ? {
+                            id: upsellProduct.product.id,
+                            name: upsellProduct.product.name,
+                            price: upsellProduct.price.amount,
+                            priceFormatted: formatPrice(upsellProduct.price.amount)
+                        } : null,
+                        totalAmount: amount,
+                        totalAmountFormatted: formatPrice(amount)
+                    };
+                    
+                    // Send checkout webhook
+                    await sendCheckoutWebhook(customerData, orderData);
+                    
+                    window.location.href = 'success.html';
+                }
+                
+            } catch (error) {
+                console.error('Payment error:', error);
+                document.getElementById('card-errors').textContent = 'Payment failed: ' + error.message;
+            } finally {
+                setButtonLoading(submitButton, false);
+            }
+        }
+    </script>
+</body>
+</html> 
