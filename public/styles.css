@@ -77,10 +77,7 @@ body {
 }
 
 /* Product Image */
-.upsell-product-image {
-    text-align: center;
-    margin-bottom: 24px;
-}
+
 
 .upsell-placeholder-image {
     width: 80px;
@@ -103,7 +100,6 @@ body {
 .upsell-price {
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: 12px;
 }
 
@@ -163,13 +159,7 @@ body {
     background: #f8f9fa;
 }
 
-/* Guarantee */
-.upsell-guarantee {
-    text-align: center;
-    margin-top: 16px;
-    color: #888;
-    font-size: 14px;
-}
+
 
 /* Progress Bar */
 .upsell-progress-bar {

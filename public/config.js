@@ -5,7 +5,7 @@ window.AppConfig = {
         const hostname = window.location.hostname;
         const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
         console.log('Detected hostname:', hostname, 'isLocalhost:', isLocalhost);
-        return isLocalhost ? 'http://localhost:3000' : '';
+        return isLocalhost ? 'http://localhost:3000' : 'https://upsell-snowy.vercel.app';
     })(),
     
     // Stripe Configuration
