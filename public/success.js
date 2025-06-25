@@ -374,40 +374,61 @@ async function handlePaidProduct(customerData) {
         ? customerPaymentMethod 
         : customerPaymentMethod.id;
     
+    // Enhanced 3D Secure handling
     const result = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: paymentMethodId
+        payment_method: paymentMethodId,
+        return_url: window.location.href  // For 3D Secure redirects
     });
     
+    // Handle different result scenarios
     if (result.error) {
+        // Check if it's a 3D Secure authentication error
+        if (result.error.type === 'card_error' && 
+            (result.error.code === 'authentication_required' || 
+             result.error.code === 'payment_intent_authentication_failure')) {
+            throw new Error('Additional authentication required. Please try again or use a different payment method.');
+        }
         throw new Error(result.error.message);
     }
     
-    // Success - send webhook and redirect
-    if (customerData) {
-        const totalOrderValue = calculateTotalOrderValue();
-        const upsellData = {
-            paymentIntentId: result.paymentIntent.id,
-            product: {
-                id: finalUpsellProduct.product.id,
-                name: finalUpsellProduct.product.name,
-                price: finalUpsellProduct.price.amount,
-                priceFormatted: finalUpsellProduct.price.formatted
-            },
-            totalOrderValue: totalOrderValue,
-            totalOrderValueFormatted: AppConfig.formatPrice(totalOrderValue)
-        };
-        
-        await sendSuccessWebhook(customerData, upsellData);
+    // Handle cases where payment requires action (3D Secure redirect)
+    if (result.paymentIntent.status === 'requires_action') {
+        // Stripe will handle the 3D Secure flow automatically
+        // This shouldn't happen with confirmCardPayment, but just in case
+        throw new Error('Payment requires additional authentication. Please try again.');
     }
     
-    localStorage.setItem(AppConfig.STORAGE_KEYS.FINAL_UPSELL, JSON.stringify({
-        product: finalUpsellProduct.product,
-        price: finalUpsellProduct.price,
-        type: 'paid',
-        paymentIntent: result.paymentIntent.id
-    }));
-    
-    window.location.href = 'final-success.html';
+    // Payment succeeded
+    if (result.paymentIntent.status === 'succeeded') {
+        // Success - send webhook and redirect
+        if (customerData) {
+            const totalOrderValue = calculateTotalOrderValue();
+            const upsellData = {
+                paymentIntentId: result.paymentIntent.id,
+                product: {
+                    id: finalUpsellProduct.product.id,
+                    name: finalUpsellProduct.product.name,
+                    price: finalUpsellProduct.price.amount,
+                    priceFormatted: finalUpsellProduct.price.formatted
+                },
+                totalOrderValue: totalOrderValue,
+                totalOrderValueFormatted: AppConfig.formatPrice(totalOrderValue)
+            };
+            
+            await sendSuccessWebhook(customerData, upsellData);
+        }
+        
+        localStorage.setItem(AppConfig.STORAGE_KEYS.FINAL_UPSELL, JSON.stringify({
+            product: finalUpsellProduct.product,
+            price: finalUpsellProduct.price,
+            type: 'paid',
+            paymentIntent: result.paymentIntent.id
+        }));
+        
+        window.location.href = 'final-success.html';
+    } else {
+        throw new Error('Payment was not completed successfully.');
+    }
 }
 
 function calculateTotalOrderValue() {
