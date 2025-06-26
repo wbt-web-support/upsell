@@ -317,12 +317,21 @@ body {
     font-size: 16px;
 }
 
-#card-element {
+#card-number-element,
+#card-expiry-element,
+#card-cvc-element {
     padding: 12px;
     border: 1px solid #e1e5e9;
     border-radius: 6px;
-    margin-bottom: 16px;
     background: #ffffff;
+    transition: border-color 0.15s ease;
+}
+
+#card-number-element:focus-within,
+#card-expiry-element:focus-within,
+#card-cvc-element:focus-within {
+    outline: none;
+    border-color: #1a1a1a;
 }
 
 #card-errors {

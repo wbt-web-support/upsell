@@ -1,6 +1,8 @@
 // JavaScript for checkout.html - Checkout page with payment processing
 let stripe;
-let cardElement;
+let cardNumberElement;
+let cardExpiryElement;
+let cardCvcElement;
 let elements;
 let mainProduct = null;
 let upsellProduct = null;
@@ -47,26 +49,78 @@ async function loadProducts() {
 function setupPaymentForm() {
     elements = stripe.elements();
     
-    cardElement = elements.create('card', {
-        style: {
-            base: {
-                fontSize: '16px',
-                color: '#424770',
-                '::placeholder': {
-                    color: '#aab7c4',
-                },
+    const elementStyles = {
+        base: {
+            fontSize: '16px',
+            color: '#424770',
+            '::placeholder': {
+                color: '#aab7c4',
             },
         },
+    };
+    
+    // Create individual card elements
+    cardNumberElement = elements.create('cardNumber', {
+        style: elementStyles,
+        placeholder: '1234 1234 1234 1234'
     });
     
-    cardElement.mount('#card-element');
+    cardExpiryElement = elements.create('cardExpiry', {
+        style: elementStyles,
+        placeholder: 'MM / YY'
+    });
     
-    cardElement.on('change', function(event) {
+    cardCvcElement = elements.create('cardCvc', {
+        style: elementStyles,
+        placeholder: 'CVV'
+    });
+    
+    // Mount elements to their containers
+    cardNumberElement.mount('#card-number-element');
+    cardExpiryElement.mount('#card-expiry-element');
+    cardCvcElement.mount('#card-cvc-element');
+    
+    // Add change event listeners for error handling and auto-tabbing
+    cardNumberElement.on('change', function(event) {
         const displayError = document.getElementById('card-errors');
         if (event.error) {
             displayError.textContent = event.error.message;
         } else {
             displayError.textContent = '';
+        }
+        
+        // Auto-tab to expiry field when card number is complete
+        if (event.complete) {
+            cardExpiryElement.focus();
+        }
+    });
+    
+    cardExpiryElement.on('change', function(event) {
+        const displayError = document.getElementById('card-errors');
+        if (event.error) {
+            displayError.textContent = event.error.message;
+        } else {
+            displayError.textContent = '';
+        }
+        
+        // Auto-tab to CVC field when expiry is complete
+        if (event.complete) {
+            cardCvcElement.focus();
+        }
+    });
+    
+    cardCvcElement.on('change', function(event) {
+        const displayError = document.getElementById('card-errors');
+        if (event.error) {
+            displayError.textContent = event.error.message;
+        } else {
+            displayError.textContent = '';
+        }
+        
+        // When CVC is complete, you could focus the submit button if desired
+        if (event.complete) {
+            // Optional: Focus the submit button when all card fields are complete
+            // document.getElementById('submit-payment').focus();
         }
     });
 }
@@ -316,7 +370,7 @@ async function handleSubmit(event) {
         // Confirm payment with customer information
         const result = await stripe.confirmCardPayment(clientSecret, {
             payment_method: {
-                card: cardElement,
+                card: cardNumberElement,
                 billing_details: {
                     name: `${customerData.firstName} ${customerData.lastName}`,
                     email: customerData.email,

@@ -5,7 +5,14 @@ window.AppConfig = {
         const hostname = window.location.hostname;
         const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
         console.log('Detected hostname:', hostname, 'isLocalhost:', isLocalhost);
-        return isLocalhost ? 'http://localhost:3000' : 'https://upsell-snowy.vercel.app';
+        
+        if (isLocalhost) {
+            return 'http://localhost:3000';
+        } else if (hostname === 'webuildtrades.com') {
+            return 'https://upsell-snowy.vercel.app'; // Your API is still hosted on Vercel
+        } else {
+            return 'https://upsell-snowy.vercel.app'; // Default to Vercel API
+        }
     })(),
     
     // Stripe Configuration

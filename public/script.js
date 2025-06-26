@@ -8,7 +8,7 @@ async function handleCheckout(productData) {
     setButtonLoading(button, true);
     
     try {
-        const response = await fetch('/api/create-checkout-session', {
+        const response = await fetch(AppConfig.getApiUrl('/api/create-checkout-session'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -43,7 +43,7 @@ async function handleUpsellPayment(paymentData) {
     setButtonLoading(button, true);
     
     try {
-        const response = await fetch('/api/upsell-payment', {
+        const response = await fetch(AppConfig.getApiUrl('/api/upsell-payment'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
