@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
       payment_method: paymentMethod.id,
       confirmation_method: 'automatic',
       confirm: true,
-      return_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/success.html`,
+      return_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/upsell-success.html`,
       metadata: {
         step: step.toString(),
         flow: 'upsell',

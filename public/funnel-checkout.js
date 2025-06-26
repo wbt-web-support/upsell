@@ -411,7 +411,7 @@ async function handleSubmit(event) {
             // Send checkout webhook
             await sendCheckoutWebhook(customerData, orderData);
             
-            window.location.href = 'success.html';
+            window.location.href = '/upsell-success.html';
         }
         
     } catch (error) {

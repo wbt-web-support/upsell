@@ -40,6 +40,6 @@ function initializeContinue() {
     continueBtn.addEventListener('click', function() {
         // Store product data for checkout page
         localStorage.setItem(AppConfig.STORAGE_KEYS.MAIN_PRODUCT, JSON.stringify(productData));
-        window.location.href = 'checkout.html';
+        window.location.href = '/funnel-checkout.html';
     });
 } 

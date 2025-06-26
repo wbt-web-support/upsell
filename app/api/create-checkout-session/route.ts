@@ -39,8 +39,8 @@ export async function POST(request: NextRequest) {
       payment_intent_data: {
         setup_future_usage: 'off_session',
       },
-      success_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/success.html?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/index.html`,
+      success_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/upsell-success.html?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/solar-funnel-test.html`,
       metadata: {
         step: '1',
         flow: 'upsell'

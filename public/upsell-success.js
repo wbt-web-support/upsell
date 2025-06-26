@@ -425,7 +425,7 @@ async function handlePaidProduct(customerData) {
             paymentIntent: result.paymentIntent.id
         }));
         
-        window.location.href = 'final-success.html';
+        window.location.href = '/final-success.html';
     } else {
         throw new Error('Payment was not completed successfully.');
     }
